@@ -1,40 +1,74 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Dashboard</title>
   <style>
-    #username {
-      position: absolute;
+    #user-info {
+      position: fixed;
       top: 10px;
       left: 10px;
+      background: #eee;
+      padding: 5px 10px;
+      border-radius: 5px;
       font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div id="username">Memuat...</div>
-  <h1>Selamat datang di Heaven Validasi</h1>
-  <button onclick="logout()">Logout</button>
+  <div id="user-info"></div>
+
+  <h1>Selamat datang di Heaven Validasi V2</h1>
+
+  <button id="logoutBtn">Logout</button>
 
   <script>
-    async function checkAuth() {
-      const res = await fetch('/api/auth/check-auth');
-      const data = await res.json();
+    const username = localStorage.getItem('username');
+    const sessionId = localStorage.getItem('sessionId');
+    const userInfo = document.getElementById('user-info');
 
-      if (!data.authenticated) {
-        window.location.href = '/login.html';
-      } else {
-        document.getElementById('username').innerText = `Login sebagai: ${data.username}`;
-      }
-    }
-
-    async function logout() {
-      await fetch('/api/auth/logout');
+    if (!username || !sessionId) {
+      alert('Anda belum login!');
       window.location.href = '/login.html';
-    }
+    } else {
+      userInfo.textContent = 'User: ' + username;
 
-    checkAuth();
+      // Cek session aktif di server
+      async function checkAuth() {
+        try {
+          const res = await fetch('/api/check-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, sessionId }),
+          });
+          const data = await res.json();
+          if (!data.authorized) {
+            alert('Sesi login tidak valid atau sudah digantikan.');
+            localStorage.clear();
+            window.location.href = '/login.html';
+          }
+        } catch (e) {
+          alert('Gagal cek sesi, coba reload halaman.');
+          console.error(e);
+        }
+      }
+
+      checkAuth();
+
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        try {
+          await fetch('/api/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, sessionId }),
+          });
+        } catch (e) {
+          console.error(e);
+        }
+        localStorage.clear();
+        window.location.href = '/login.html';
+      });
+    }
   </script>
 </body>
 </html>

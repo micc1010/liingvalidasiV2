@@ -5,17 +5,17 @@ export default function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { token } = req.body;
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   if (!token) {
-    return res.status(400).json({ valid: false, message: 'Token required' });
+    return res.status(400).json({ valid: false, message: 'Token required in Authorization header' });
   }
 
   try {
     const secret = process.env.JWT_SECRET;
     const decoded = jwt.verify(token, secret);
 
-    // Jika token valid, bisa kirim kembali info user atau hanya valid:true
     return res.status(200).json({ valid: true, username: decoded.username });
   } catch (err) {
     console.log('[check-auth] token invalid or expired:', err.message);

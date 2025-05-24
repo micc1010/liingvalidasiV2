@@ -1,18 +1,16 @@
-// auth/logout.js
+import { sessionStore } from './sessionStore.js';
 
-const { destroySession } = require("./sessionStore");
+export default function handler(req, res) {
+  const username = req.cookies?.username;
 
-export default async function handler(req, res) {
-  const cookies = Object.fromEntries(
-    (req.headers.cookie || "").split("; ").map(c => c.split("="))
-  );
-  const sessionId = cookies.sessionId;
+  if (username && sessionStore[username]) {
+    delete sessionStore[username];
+    console.log(`User ${username} logged out`);
+  }
 
-  if (sessionId) destroySession(sessionId);
-
-  res.setHeader("Set-Cookie", [
-    "sessionId=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
-    "username=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
+  res.setHeader('Set-Cookie', [
+    'token=; Max-Age=0; Path=/',
+    'username=; Max-Age=0; Path=/'
   ]);
-  res.redirect("/login.html");
+  res.status(200).json({ message: 'Logged out' });
 }

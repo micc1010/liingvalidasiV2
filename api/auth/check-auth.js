@@ -1,18 +1,14 @@
-// auth/check-auth.js
-
-const { isValidSession } = require("./sessionStore");
+import { sessionStore } from './sessionStore.js';
 
 export default function handler(req, res) {
-  const cookies = Object.fromEntries(
-    (req.headers.cookie || "").split("; ").map(c => c.split("="))
-  );
+  const { token, username } = req.cookies || {};
+  const valid = username && sessionStore[username] === token;
 
-  const username = cookies.username;
-  const sessionId = cookies.sessionId;
+  console.log('Auth check for:', username, 'Valid:', valid);
 
-  if (isValidSession(username, sessionId)) {
-    res.status(200).json({ username });
+  if (valid) {
+    return res.status(200).json({ authenticated: true, username });
   } else {
-    res.status(401).end();
+    return res.status(401).json({ authenticated: false });
   }
 }

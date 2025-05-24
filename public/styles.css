@@ -1,0 +1,14 @@
+body {
+  font-family: sans-serif;
+  text-align: center;
+  margin-top: 50px;
+}
+input {
+  margin: 5px;
+  padding: 8px;
+}
+.header {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+}

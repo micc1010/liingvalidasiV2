@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>liingvalidasi</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="header">
+    <span id="usernameDisplay"></span>
+    <a href="/api/auth/logout.js">Logout</a>
+  </div>
+
+  <h1>Cek Rekening & E-Wallet</h1>
+  <input type="text" id="nomor" placeholder="Nomor rekening/e-wallet" />
+  <input type="text" id="bank" placeholder="Nama bank/ewallet (e.g. BCA, DANA)" />
+  <button onclick="cek()">Cek</button>
+
+  <pre id="hasil"></pre>
+
+  <script>
+    fetch('/auth/check-auth.js')
+      .then(r => r.ok ? r.json() : location.replace('/login.html'))
+      .then(data => document.getElementById("usernameDisplay").innerText = "👤 " + data.username);
+
+    function cek() {
+      const nomor = document.getElementById("nomor").value;
+      const bank = document.getElementById("bank").value;
+      fetch(`/api/proxy.js?nomor=${nomor}&bank=${bank}`)
+        .then(r => r.json())
+        .then(data => document.getElementById("hasil").innerText = JSON.stringify(data, null, 2));
+    }
+  </script>
+</body>
+</html>

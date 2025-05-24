@@ -1,29 +1,28 @@
-import { get, set } from './sessionStore';
+import jwt from 'jsonwebtoken';
 
 const users = {
   dimasyorke: 'asd123123',
   michael: 'micc1010',
 };
 
-export default async function handler(req, res) {
-  console.log('[login] request method:', req.method);
-
+export default function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   const { username, password } = req.body;
-  console.log('[login] received:', username, password);
 
-  if (users[username] && users[username] === password) {
-    // Buat session baru
-    const sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    set(username, sessionId);
-    console.log(`[login] login success for ${username}, sessionId: ${sessionId}`);
-
-    return res.status(200).json({ success: true, sessionId });
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password required' });
   }
 
-  console.log('[login] login failed: invalid credentials');
-  return res.status(401).json({ success: false, message: 'Invalid username or password' });
+  const userPassword = users[username];
+  if (!userPassword || userPassword !== password) {
+    return res.status(401).json({ message: 'Invalid username or password' });
+  }
+
+  const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  console.log(`[login] token generated for ${username}`);
+
+  return res.status(200).json({ success: true, token });
 }

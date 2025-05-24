@@ -35,36 +35,52 @@
     const form = document.getElementById('validateForm');
     const result = document.getElementById('result');
 
-    // Validasi session user
-    async function checkAuth() {
-      const username = localStorage.getItem('username');
-      const sessionId = localStorage.getItem('sessionId');
+    // Fungsi decode payload JWT untuk ambil username
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+          '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        ).join(''));
+        return JSON.parse(jsonPayload);
+      } catch {
+        return null;
+      }
+    }
 
-      if (!username || !sessionId) {
+    async function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (!token) {
         window.location.href = '/login.html';
         return;
       }
 
+      const payload = parseJwt(token);
+      if (!payload || !payload.username) {
+        localStorage.clear();
+        window.location.href = '/login.html';
+        return;
+      }
+
+      // Opsional: cek validasi token ke server
       try {
         const res = await fetch('/api/check-auth', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, sessionId }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
         });
 
-        const data = await res.json();
-        console.log('[check-auth] response:', data);
-
-        if (res.ok && data.valid) {
-          userDisplay.textContent = `User: ${username}`;
-        } else {
-          alert('Session tidak valid. Silakan login ulang.');
+        if (!res.ok) {
           localStorage.clear();
           window.location.href = '/login.html';
+          return;
         }
-      } catch (err) {
-        console.error('[check-auth] error:', err);
-        alert('Terjadi kesalahan autentikasi.');
+
+        userDisplay.textContent = `User: ${payload.username}`;
+      } catch {
         localStorage.clear();
         window.location.href = '/login.html';
       }
@@ -72,34 +88,29 @@
 
     checkAuth();
 
-    // Logout
     logoutBtn.addEventListener('click', async () => {
-      const username = localStorage.getItem('username');
-
-      if (!username) {
+      const token = localStorage.getItem('token');
+      if (!token) {
         window.location.href = '/login.html';
         return;
       }
 
       try {
-        const res = await fetch('/api/logout', {
+        await fetch('/api/logout', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
         });
-
-        const data = await res.json();
-        console.log('[logout] response:', data);
-
+      } catch {
+        // ignore error logout
+      } finally {
         localStorage.clear();
         window.location.href = '/login.html';
-      } catch (err) {
-        console.error('[logout] error:', err);
-        alert('Gagal logout.');
       }
     });
 
-    // Form cek validasi rekening via proxy API
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       result.textContent = '';
@@ -112,15 +123,29 @@
         return;
       }
 
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Session habis. Silakan login ulang.');
+        window.location.href = '/login.html';
+        return;
+      }
+
       try {
         const res = await fetch('/api/proxy', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ bank, no_rekening }),
         });
 
         const data = await res.json();
-        console.log('[proxy] response:', data);
+
+        if (!res.ok) {
+          result.textContent = data.message || 'Terjadi kesalahan saat cek validasi.';
+          return;
+        }
 
         result.textContent = JSON.stringify(data, null, 2);
       } catch (err) {

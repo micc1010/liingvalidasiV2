@@ -1,23 +1,24 @@
-import { get } from './sessionStore';
+import jwt from 'jsonwebtoken';
 
 export default function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { username, sessionId } = req.body;
+  const { token } = req.body;
 
-  if (!username || !sessionId) {
-    return res.status(400).json({ message: 'Username and sessionId required' });
+  if (!token) {
+    return res.status(400).json({ valid: false, message: 'Token required' });
   }
 
-  const storedSessionId = get(username);
+  try {
+    const secret = process.env.JWT_SECRET;
+    const decoded = jwt.verify(token, secret);
 
-  if (storedSessionId && storedSessionId === sessionId) {
-    console.log(`[check-auth] user ${username} session valid`);
-    return res.status(200).json({ valid: true });
+    // Jika token valid, bisa kirim kembali info user atau hanya valid:true
+    return res.status(200).json({ valid: true, username: decoded.username });
+  } catch (err) {
+    console.log('[check-auth] token invalid or expired:', err.message);
+    return res.status(401).json({ valid: false, message: 'Invalid or expired token' });
   }
-
-  console.log(`[check-auth] user ${username} session invalid or expired`);
-  return res.status(401).json({ valid: false });
 }

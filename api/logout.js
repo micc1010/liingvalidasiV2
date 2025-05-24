@@ -1,19 +1,18 @@
-const sessionStore = require('./sessionStore');
+import { clear } from './sessionStore';
 
-module.exports = async (req, res) => {
+export default function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { username, sessionId } = req.body;
+  const { username } = req.body;
 
-  const currentSession = sessionStore.get(username);
-  if (currentSession === sessionId) {
-    sessionStore.clear(username);
-    console.log(`[LOGOUT] ${username} berhasil logout.`);
-  } else {
-    console.log(`[LOGOUT] ${username} mencoba logout dengan session tidak valid.`);
+  if (!username) {
+    return res.status(400).json({ message: 'Username required' });
   }
 
-  return res.status(200).json({ success: true });
-};
+  clear(username);
+  console.log(`[logout] session cleared for ${username}`);
+
+  return res.status(200).json({ success: true, message: 'Logged out successfully' });
+}

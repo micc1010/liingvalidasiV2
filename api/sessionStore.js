@@ -1,13 +1,19 @@
+// sessionStore.js: menyimpan sesi aktif di memory (hanya runtime)
 const sessions = {};
 
-module.exports = {
-  get: (username) => sessions[username],
-  set: (username, sessionId) => {
-    sessions[username] = sessionId;
-    console.log(`[SESSION] Set session ${sessionId} untuk user ${username}`);
-  },
-  clear: (username) => {
-    delete sessions[username];
-    console.log(`[SESSION] Session untuk user ${username} telah dihapus`);
-  }
-};
+// dapatkan sessionId berdasarkan username
+export function get(username) {
+  return sessions[username];
+}
+
+// set sessionId untuk username
+export function set(username, sessionId) {
+  sessions[username] = sessionId;
+  console.log(`[sessionStore] set session for ${username}: ${sessionId}`);
+}
+
+// hapus session username
+export function clear(username) {
+  delete sessions[username];
+  console.log(`[sessionStore] cleared session for ${username}`);
+}

@@ -1,24 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - Liing Validasi</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Login</h1>
-  <input id="username" placeholder="Username" />
-  <input id="password" type="password" placeholder="Password" />
-  <button onclick="login()">Login</button>
+  <h1>Login Liing Validasi</h1>
+
+  <form id="loginForm">
+    <label>
+      Username:
+      <input type="text" name="username" id="username" required />
+    </label><br /><br />
+    <label>
+      Password:
+      <input type="password" name="password" id="password" required />
+    </label><br /><br />
+    <button type="submit">Login</button>
+  </form>
+
+  <p id="message" style="color:red;"></p>
 
   <script>
-    async function login() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('message');
 
-      if (!username || !password) {
-        alert('Username dan password harus diisi!');
-        return;
-      }
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+
+      const username = form.username.value.trim();
+      const password = form.password.value.trim();
 
       try {
         const res = await fetch('/api/login', {
@@ -28,19 +42,20 @@
         });
 
         const data = await res.json();
+        console.log('[login] response:', data);
 
-        if (data.success) {
+        if (res.ok && data.success) {
           localStorage.setItem('username', username);
           localStorage.setItem('sessionId', data.sessionId);
           window.location.href = '/index.html';
         } else {
-          alert('Login gagal: ' + (data.message || 'Periksa username dan password'));
+          msg.textContent = data.message || 'Login gagal!';
         }
       } catch (err) {
-        alert('Terjadi kesalahan saat login.');
-        console.error(err);
+        console.error('[login] error:', err);
+        msg.textContent = 'Terjadi kesalahan, coba lagi.';
       }
-    }
+    });
   </script>
 </body>
 </html>

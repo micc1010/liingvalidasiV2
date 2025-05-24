@@ -1,18 +1,23 @@
-const sessionStore = require('./sessionStore');
+import { get } from './sessionStore';
 
-module.exports = async (req, res) => {
+export default function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   const { username, sessionId } = req.body;
-  const validSession = sessionStore.get(username);
 
-  if (validSession === sessionId) {
-    console.log(`[AUTH] ${username} memiliki sesi aktif yang valid.`);
-    return res.status(200).json({ authorized: true });
+  if (!username || !sessionId) {
+    return res.status(400).json({ message: 'Username and sessionId required' });
   }
 
-  console.log(`[AUTH] Akses ditolak untuk ${username}. Session tidak valid.`);
-  return res.status(401).json({ authorized: false });
-};
+  const storedSessionId = get(username);
+
+  if (storedSessionId && storedSessionId === sessionId) {
+    console.log(`[check-auth] user ${username} session valid`);
+    return res.status(200).json({ valid: true });
+  }
+
+  console.log(`[check-auth] user ${username} session invalid or expired`);
+  return res.status(401).json({ valid: false });
+}

@@ -1,74 +1,133 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Dashboard</title>
-  <style>
-    #user-info {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: #eee;
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-weight: bold;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Liing Validasi</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="user-info"></div>
+  <header>
+    <div id="userDisplay" style="position: fixed; top: 10px; left: 10px; font-weight: bold;"></div>
+    <button id="logoutBtn" style="position: fixed; top: 10px; right: 10px;">Logout</button>
+  </header>
 
-  <h1>Selamat datang di Heaven Validasi V2</h1>
+  <main>
+    <h1>Selamat datang di Liing Validasi</h1>
+    <form id="validateForm">
+      <label>
+        Bank:
+        <input type="text" name="bank" id="bank" required />
+      </label><br /><br />
+      <label>
+        No Rekening:
+        <input type="text" name="no_rekening" id="no_rekening" required />
+      </label><br /><br />
+      <button type="submit">Cek Validasi</button>
+    </form>
 
-  <button id="logoutBtn">Logout</button>
+    <pre id="result" style="background:#f0f0f0; padding: 1em; margin-top: 1em;"></pre>
+  </main>
 
   <script>
-    const username = localStorage.getItem('username');
-    const sessionId = localStorage.getItem('sessionId');
-    const userInfo = document.getElementById('user-info');
+    const userDisplay = document.getElementById('userDisplay');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const form = document.getElementById('validateForm');
+    const result = document.getElementById('result');
 
-    if (!username || !sessionId) {
-      alert('Anda belum login!');
-      window.location.href = '/login.html';
-    } else {
-      userInfo.textContent = 'User: ' + username;
+    // Validasi session user
+    async function checkAuth() {
+      const username = localStorage.getItem('username');
+      const sessionId = localStorage.getItem('sessionId');
 
-      // Cek session aktif di server
-      async function checkAuth() {
-        try {
-          const res = await fetch('/api/check-auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, sessionId }),
-          });
-          const data = await res.json();
-          if (!data.authorized) {
-            alert('Sesi login tidak valid atau sudah digantikan.');
-            localStorage.clear();
-            window.location.href = '/login.html';
-          }
-        } catch (e) {
-          alert('Gagal cek sesi, coba reload halaman.');
-          console.error(e);
-        }
+      if (!username || !sessionId) {
+        window.location.href = '/login.html';
+        return;
       }
 
-      checkAuth();
+      try {
+        const res = await fetch('/api/check-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, sessionId }),
+        });
 
-      document.getElementById('logoutBtn').addEventListener('click', async () => {
-        try {
-          await fetch('/api/logout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, sessionId }),
-          });
-        } catch (e) {
-          console.error(e);
+        const data = await res.json();
+        console.log('[check-auth] response:', data);
+
+        if (res.ok && data.valid) {
+          userDisplay.textContent = `User: ${username}`;
+        } else {
+          alert('Session tidak valid. Silakan login ulang.');
+          localStorage.clear();
+          window.location.href = '/login.html';
         }
+      } catch (err) {
+        console.error('[check-auth] error:', err);
+        alert('Terjadi kesalahan autentikasi.');
         localStorage.clear();
         window.location.href = '/login.html';
-      });
+      }
     }
+
+    checkAuth();
+
+    // Logout
+    logoutBtn.addEventListener('click', async () => {
+      const username = localStorage.getItem('username');
+
+      if (!username) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        });
+
+        const data = await res.json();
+        console.log('[logout] response:', data);
+
+        localStorage.clear();
+        window.location.href = '/login.html';
+      } catch (err) {
+        console.error('[logout] error:', err);
+        alert('Gagal logout.');
+      }
+    });
+
+    // Form cek validasi rekening via proxy API
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      result.textContent = '';
+
+      const bank = form.bank.value.trim();
+      const no_rekening = form.no_rekening.value.trim();
+
+      if (!bank || !no_rekening) {
+        result.textContent = 'Bank dan No Rekening harus diisi.';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bank, no_rekening }),
+        });
+
+        const data = await res.json();
+        console.log('[proxy] response:', data);
+
+        result.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        console.error('[proxy] error:', err);
+        result.textContent = 'Terjadi kesalahan saat cek validasi.';
+      }
+    });
   </script>
 </body>
 </html>

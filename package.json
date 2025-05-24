@@ -4,4 +4,5 @@
   "scripts": {
     "dev": "vercel dev"
   },
-  "dependencies":
+  "dependencies": {}
+}
